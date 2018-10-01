@@ -3,8 +3,6 @@ Module      : Main
 Description : Filter sequences in FASTQ format with a given prefix.
 Copyright   : (c) Khalid Mahmood, 27 Sep 2018
 License     : BSD-3-Clause
-Maintainer  : kmahmood@unimelb.edu.au
-Portability : POSIX
 '''
 
 #!/usr/bin/python
