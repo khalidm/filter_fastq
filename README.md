@@ -33,7 +33,7 @@ filter_fastq can be installed using `pip` in a variety of ways (`$` indicates th
 
 1. Inside a virtual environment:
 ```
-$ python3 -m venv filter_fastq
+$ python -m venv filter_fastq
 $ source filter_fastq/bin/activate
 $ pip install -U /path/to/filter_fastq
 ```
