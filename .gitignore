@@ -2,3 +2,8 @@ Sample38_BSTP-S134_L01_R2_001.fastq
 *.fastq
 Sample38_BSTP-S134.csv
 Sample38_BSTP-S134 copy.csv
+output
+Sample38-0_BSTP-S134.primary.bam
+Sample38-0_BSTP-S134.primary.bam.bai
+Sample38-0_BSTP-S134.sort.bai
+Sample38-0_BSTP-S134.sort.bam

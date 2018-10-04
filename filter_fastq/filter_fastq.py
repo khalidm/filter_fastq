@@ -16,6 +16,9 @@ import sys
 import logging
 import pkg_resources
 from Bio import SeqIO
+# sys.stdout.flush()
+
+from time import gmtime, strftime
 
 import pandas as pd
 import numpy as np
@@ -24,18 +27,6 @@ EXIT_FILE_IO_ERROR = 1
 EXIT_COMMAND_LINE_ERROR = 2
 DEFAULT_VERBOSE = False
 PROGRAM_NAME = "filter_fastq"
-
-# def exit_with_error(message, exit_status):
-#     '''Print an error message to stderr, prefixed by the program name and 'ERROR'.
-#     Then exit program with supplied exit status.
-#     Arguments:
-#         message: an error message as a string.
-#         exit_status: a positive integer representing the exit status of the
-#         program.
-#     '''
-#     logging.error(message)
-#     print("{} ERROR: {}, exiting".format(PROGRAM_NAME, message), file=sys.stderr)
-#     sys.exit(exit_status)
 
 def get_fq_names(fq_to_parse):
     filename_w_ext = os.path.basename(fq_to_parse)
@@ -65,6 +56,30 @@ def make_fastq_reads_from_lists(inputfq, primer1, primer2):
             filtered_seqs.append(record)
     return filtered_seqs
 
+def get_fastq_readids(inputfq, primer1, primer2):
+    # print "looking for " + str(primer1)
+    filtered_rids = []
+    input_seq_iterator = SeqIO.parse(inputfq, "fastq")
+    for record in input_seq_iterator:
+        #if not record.seq.startswith(tuple(primer1)) and not record.seq.startswith(tuple(primer2)):
+        if record.seq.startswith(tuple(primer1)) or record.seq.startswith(tuple(primer2)):
+            if record.id not in filtered_rids:
+                filtered_rids.append(record.id)
+    return filtered_rids
+
+def write_filtered_fastq(filter_list, inputfq, new_fq):
+    count = 0
+    filtered_seqs = []
+    input_seq_iterator = SeqIO.parse(inputfq, "fastq")
+    for record in input_seq_iterator:
+        if record.id not in filter_list:
+        # if any(record.id is not x for x in filter_list):
+            # filtered_seqs.append(record)
+            yield record
+            # c = SeqIO.write(record, new_fq, "fastq")
+            # count = count + c
+    # return filtered_seqs
+
 def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", type=str, dest="input", help="Input file containing prefix sequences", required=True)
@@ -91,18 +106,49 @@ def main(argv):
     # Incremently remove reads
     if len(forwards) == len(reverse):
         for i in range(len(forwards)):
+            print "H0 " + strftime("%Y-%m-%d %H:%M:%S", gmtime())
             # print forwards[i] + ":" + reverse[i]
             k = i + 1
             new_fq1 = fq1_list[0] + "-" + str(k) + "_" + fq1_list[1] + "_" + fq1_list[2] + "_" + fq1_list[3] + "_" + fq1_list[4] + ".fastq"
             new_fq2 = fq2_list[0] + "-" + str(k) + "_" + fq2_list[1] + "_" + fq2_list[2] + "_" + fq2_list[3] + "_" + fq2_list[4] + ".fastq"
-            c1 = SeqIO.write(make_fastq_reads_from_lists(fq1, forwards[:k], reverse[:k]), new_fq1, "fastq")
+
+            filter_ids = {}
+            filter_ids_R1 = []
+            # filter_ids_R1.append(get_fastq_readids(fq1, forwards[:k], reverse[:k]))
+            filter_ids_R1 = get_fastq_readids(fq1, forwards[:k], reverse[:k])
+            print "H1 " + strftime("%Y-%m-%d %H:%M:%S", gmtime())
+            filter_ids_R2 = []
+            # filter_ids_R2.append(get_fastq_readids(fq2, forwards[:k], reverse[:k]))
+            filter_ids_R2 = get_fastq_readids(fq2, forwards[:k], reverse[:k])
+            print "H2 " + strftime("%Y-%m-%d %H:%M:%S", gmtime())
+            # filter_ids = list(set(filter_ids_R1).union(set(filter_ids_R2)))
+            filter_ids = set(filter_ids_R1).union(set(filter_ids_R2))
+            print "H3 " + strftime("%Y-%m-%d %H:%M:%S", gmtime())
+
+            # input_seq_iterator = SeqIO.parse(, "fastq")
+            # short_seq_iterator = (record for record in input_seq_iterator if len(record.seq) < 300)
+
+            # list contianing read_ids to exclude
+            # filter_ids
+            # seqs = write_filtered_fastq(filter_ids, fq1, new_fq1)
+            # print "H3A" + strftime("%Y-%m-%d %H:%M:%S", gmtime())
+            # print filter_ids
+            c1 = SeqIO.write(write_filtered_fastq(filter_ids, fq1, new_fq1), new_fq1, "fastq")
             print "Writing fastq file: " + new_fq1 + " (" + str(c1) + ")"
-            c2 = SeqIO.write(make_fastq_reads_from_lists(fq2, forwards[:k], reverse[:k]), new_fq2, "fastq")
+            print "H4 " + strftime("%Y-%m-%d %H:%M:%S", gmtime())
+            c2 = SeqIO.write(write_filtered_fastq(filter_ids, fq2, new_fq2), new_fq2, "fastq")
             print "Writing fastq file: " + new_fq2 + " (" + str(c2) + ")"
+            print "H5 " + strftime("%Y-%m-%d %H:%M:%S", gmtime())
+
+            fq1 = new_fq1
+            fq2 = new_fq2
+            del filter_ids_R1[:]
+            del filter_ids_R2[:]
+            filter_ids.clear()
+
 
     else:
         print "error message:\n" + parser.print_usage()
-
 
     # Iteratively remove only corresponding reads
     # for index, row in df.iterrows():
